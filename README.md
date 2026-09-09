@@ -2,7 +2,7 @@
 
 Modern peer-to-peer payment system. This sample application uses Next.js, Supabase, and Circle Modular Wallets with Passkey security to demonstrate a seamless, gasless P2P payment system on the Arc Network.
 
-<img width="215" height="465" alt="Fintech Starter App dashboard" src="public/screenshot.png" />
+![Fintech Starter App dashboard](public/screenshot.png)
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ Modern peer-to-peer payment system. This sample application uses Next.js, Supaba
 
 - **Node.js v22+** — Install via [nvm](https://github.com/nvm-sh/nvm)
 - **Supabase CLI** — Install via `npm install -g supabase` or see [Supabase CLI docs](https://supabase.com/docs/guides/cli/getting-started)
-- **Docker Desktop** (only if using the local Supabase path) — [Install Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- **Docker Desktop** — [Install Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - Circle **[API key](https://console.circle.com/signin)** and **[Entity Secret](https://developers.circle.com/wallets/dev-controlled/register-entity-secret)**
 
 ## Getting Started
@@ -29,43 +29,22 @@ Modern peer-to-peer payment system. This sample application uses Next.js, Supaba
    npm install
    ```
 
-2. Set up environment variables:
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   Then edit `.env.local` and fill in all required values (see [Environment Variables](#environment-variables) section below).
-
-3. Set up the database — Choose one of the two paths below:
-
-   <details>
-   <summary><strong>Path 1: Local Supabase (Docker)</strong></summary>
-
-   Requires Docker Desktop installed and running.
+2. Start the database, with Docker Desktop running:
 
    ```bash
    npx supabase start
    npx supabase migration up
    ```
 
-   The output of `npx supabase start` will display the Supabase URL and API keys needed for your `.env.local`.
+   The output of `npx supabase start` displays the Supabase URL and API keys needed in the next step.
 
-   </details>
-
-   <details>
-   <summary><strong>Path 2: Remote Supabase (Cloud)</strong></summary>
-
-   Requires a [Supabase](https://supabase.com/) account and project.
+3. Set up environment variables:
 
    ```bash
-   npx supabase link --project-ref <your-project-ref>
-   npx supabase db push
+   cp .env.example .env.local
    ```
 
-   Retrieve your project URL and API keys from the Supabase dashboard under **Settings → API**.
-
-   </details>
+   Then edit `.env.local` and fill in all required values (see [Environment Variables](#environment-variables) section below).
 
 4. Start the development server:
 
@@ -110,9 +89,9 @@ NEXT_PUBLIC_CIRCLE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
 
 ## User Accounts
 
-### Test Accounts (Local Supabase)
+### Test Accounts
 
-If you are running Supabase locally, you can use the following pre-defined phone numbers and OTPs for testing (configured in `supabase/config.toml`):
+Pre-defined phone numbers and OTPs for testing, configured in `supabase/config.toml`:
 
 | Phone Number | OTP |
 | --- | --- |

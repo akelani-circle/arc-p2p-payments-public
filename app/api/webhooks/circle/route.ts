@@ -20,10 +20,7 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { SupabaseClient } from "@supabase/supabase-js";
-
-const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-  ? process.env.NEXT_PUBLIC_VERCEL_URL
-  : "http://localhost:3000";
+import { resolveBaseUrl } from "@/lib/utils/base-url";
 
 const ARC_CHAIN_ID = 5042002;
 const ARC_NETWORK_NAME = "Arc Testnet";
@@ -159,7 +156,8 @@ async function updateWalletBalance(
 
     const supabase = await createSupabaseServerClient();
 
-    // Call wallet balance API
+    // Call wallet balance API on this same deployment.
+    const baseUrl = await resolveBaseUrl();
     const response = await fetch(`${baseUrl}/api/wallet/balance`, {
       method: "POST",
       body: JSON.stringify({
@@ -221,7 +219,7 @@ async function processTransaction(
 
   const { data: existing } = await supabase
     .from("transactions")
-    .select("id, amount, circle_contract_address")
+    .select("id, amount, status, circle_contract_address")
     .eq("circle_transaction_id", txHash)
     .eq("wallet_id", wallet.id)
     .single();
