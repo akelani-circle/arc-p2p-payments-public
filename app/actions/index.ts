@@ -19,7 +19,7 @@
 "use server";
 
 import { encodedRedirect } from "@/lib/utils/utils";
-import { createClient } from "@/lib/utils/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -27,7 +27,7 @@ export const signInAction = async (formData: FormData) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const isPasskeyLogin = formData.get("passkey_login") === "true";
-  const supabase = await createClient();
+  const supabase = await createSupabaseServerClient();
 
   if (isPasskeyLogin) {
     // For passkey logins, we'll try to sign in with email and a predefined password
@@ -96,7 +96,7 @@ export const signInAction = async (formData: FormData) => {
 
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
-  const supabase = await createClient();
+  const supabase = await createSupabaseServerClient();
   const origin = (await headers()).get("origin");
   const callbackUrl = formData.get("callbackUrl")?.toString();
 
@@ -129,7 +129,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
 };
 
 export const resetPasswordAction = async (formData: FormData) => {
-  const supabase = await createClient();
+  const supabase = await createSupabaseServerClient();
 
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
@@ -166,7 +166,7 @@ export const resetPasswordAction = async (formData: FormData) => {
 };
 
 export const signOutAction = async () => {
-  const supabase = await createClient();
+  const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
   return redirect("/sign-in");
 };

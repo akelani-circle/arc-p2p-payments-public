@@ -19,7 +19,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import { z } from "zod";
-import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 
 // Schema validation
 const WalletIdSchema = z.object({
@@ -51,8 +51,9 @@ export async function POST(
     const { walletId } = parseResult.data;
     const normalizedWalletId = walletId.toLowerCase();
 
-    // Get the Supabase client
-    const supabase = await createSupabaseServerClient();
+    // The Circle webhook calls this route without a user session, so it reads
+    // and updates the wallet with the secret key.
+    const supabase = createSupabaseAdminClient();
 
     // Fetch the wallet information from the database
     const { data: wallet, error: walletError } = await supabase
@@ -96,7 +97,7 @@ export async function POST(
 
       const usdcBalance =
         balanceResponse.data?.data?.tokenBalances?.find(
-          (balance: any) => balance.token?.symbol === "USDC",
+          (balance: { token?: { symbol?: string } }) => balance.token?.symbol === "USDC",
         )?.amount || "0";
 
       // Update wallet balance in database

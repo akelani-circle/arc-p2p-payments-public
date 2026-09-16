@@ -26,9 +26,24 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, X } from "lucide-react";
 import Link from "next/link";
 
+interface TransactionDetails {
+  id: string;
+  state: string;
+  transactionType?: string;
+  from?: string;
+  to?: string;
+  walletId?: string;
+  walletAddress?: string;
+  tokenAddress?: string;
+  amounts?: string[];
+  txHash?: string;
+  createDate: string;
+  updateDate: string;
+}
+
 export default function Transaction() {
   const router = useRouter();
-  const [transaction, setTransaction] = useState<any>(null);
+  const [transaction, setTransaction] = useState<TransactionDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

@@ -21,6 +21,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useWeb3 } from "@/components/web3-provider";
 import { toast } from "sonner";
+import type { RealtimeChannel, RealtimePostgresUpdatePayload } from "@supabase/supabase-js";
 import axios from "axios";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 
@@ -39,7 +40,7 @@ export function useWalletBalances() {
   const balancesLoadedRef = useRef(false);
   const prevAddressRef = useRef<string | null>(null);
   const isRefreshingRef = useRef(false);
-  const realtimeChannelRef = useRef<any>(null);
+  const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
 
   interface BalanceResponse {
     balance: string;
@@ -162,7 +163,7 @@ export function useWalletBalances() {
 
   // Handle realtime balance updates
   const updateWalletBalance = useCallback(
-    (payload: any) => {
+    (payload: RealtimePostgresUpdatePayload<Record<string, string>>) => {
       const newBalance = Number(payload.new.balance);
 
       if (isNaN(newBalance)) {

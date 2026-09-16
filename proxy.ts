@@ -22,10 +22,7 @@ import { createSupabaseReqResClient } from "@/lib/supabase/server-client";
 export async function proxy(request: NextRequest) {
   // Get the origin from the request headers
   const origin = request.headers.get('origin') || '';
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://64b3466d-48ab-43ac-94e1-df5a0c65600c-00-3dcvk8y4qe4v6.kirk.replit.dev',
-  ];
+  const allowedOrigins = ['http://localhost:3000'];
 
   // Create the response with the original headers
   const response = NextResponse.next({

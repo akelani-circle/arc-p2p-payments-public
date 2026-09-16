@@ -19,10 +19,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { defineChain, parseGwei } from 'viem';
+import { defineChain, parseGwei, type PublicClient } from 'viem';
 import { createPublicClient } from 'viem';
 import {
     type P256Credential,
+    type BundlerClient,
     type SmartAccount,
     toWebAuthnAccount,
     createBundlerClient,
@@ -63,11 +64,13 @@ export const arcTestnet = defineChain({
 const USDC_ADDRESS = '0x3600000000000000000000000000000000000000';
 const USDC_DECIMALS = 6;
 
+type SignTypedDataParameters = Parameters<SmartAccount['signTypedData']>[0];
+
 interface Account {
     smartAccount: SmartAccount | null;
     address: string | null;
-    bundlerClient: any | null;
-    publicClient: any | null;
+    bundlerClient: BundlerClient | null;
+    publicClient: PublicClient | null;
 }
 
 interface TokenBalance {
@@ -80,15 +83,15 @@ interface Web3ContextType {
     isConnected: boolean;
     isInitialized: boolean;
     error: string | null;
-    registerPasskey: (username: string) => Promise<void>;
-    loginWithPasskey: () => Promise<void>;
+    registerPasskey: (username: string) => Promise<unknown>;
+    loginWithPasskey: () => Promise<unknown>;
     sendTransaction: (to: string, value: string) => Promise<string | null>;
     sendUSDC: (to: string, amount: string) => Promise<string | null>;
     getUSDCBalance: () => Promise<string | null>;
     balance: TokenBalance;
     refreshBalances: () => Promise<void>;
     signMessage: (message: string) => Promise<string | null>;
-    signTypedData: (data: any) => Promise<string | null>;
+    signTypedData: (data: SignTypedDataParameters) => Promise<string | null>;
     getAddress: () => Promise<string | null>;
 }
 
@@ -220,11 +223,15 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
                             const MIN_PRIORITY_FEE = parseGwei('1');
                             // Get the fee estimate from the bundler
                             const fees = await bundlerClient.request({
+                                // Pimlico-specific method, not in viem's bundler RPC schema
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 method: 'pimlico_getUserOperationGasPrice' as any,
                             }).catch(() => null);
 
                             if (fees) {
-                                const fast = (fees as any).fast;
+                                const { fast } = fees as unknown as {
+                                    fast: { maxFeePerGas: string; maxPriorityFeePerGas: string };
+                                };
                                 return {
                                     maxFeePerGas: BigInt(fast.maxFeePerGas),
                                     maxPriorityFeePerGas: BigInt(fast.maxPriorityFeePerGas) < MIN_PRIORITY_FEE
@@ -292,8 +299,9 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
             if (accountData.address && accountData.publicClient) {
                 try {
                     // Native token balance (USDC as gas on Arc)
+                    const address = accountData.address as `0x${string}`;
                     const nativeBalance = await accountData.publicClient.getBalance({
-                        address: accountData.address
+                        address
                     });
 
                     newBalance.native = (Number(nativeBalance) / 1e18).toString();
@@ -310,7 +318,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
                                 outputs: [{ name: '', type: 'uint256' }],
                             }],
                             functionName: 'balanceOf',
-                            args: [accountData.address]
+                            args: [address]
                         });
 
                         const divisor = 10 ** USDC_DECIMALS;
@@ -445,8 +453,8 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // State to hold methods created in the useEffect
     const [contextMethods, setContextMethods] = useState<{
-        registerPasskey: (username: string) => Promise<any>;
-        loginWithPasskey: () => Promise<any>;
+        registerPasskey: (username: string) => Promise<unknown>;
+        loginWithPasskey: () => Promise<unknown>;
         refreshBalances: () => Promise<void>;
     }>({
         registerPasskey: async () => {
@@ -576,7 +584,7 @@ export const Web3Provider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // Sign typed data according to EIP-712
-    const signTypedData = async (data: any): Promise<string | null> => {
+    const signTypedData = async (data: SignTypedDataParameters): Promise<string | null> => {
         if (!account.smartAccount) {
             setError('Account not initialized');
             return null;

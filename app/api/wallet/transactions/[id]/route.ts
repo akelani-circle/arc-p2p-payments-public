@@ -17,7 +17,7 @@
  */
 
 import { type NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 
 const ARC_BLOCKCHAIN = "ARC-TESTNET";
 const ARC_NETWORK_NAME = "Arc Testnet";
@@ -31,8 +31,9 @@ export async function GET(
     const { id } = await props.params;
     const networkId = ARC_CHAIN_ID;
 
-    // Initialize Supabase client
-    const supabase = await createSupabaseServerClient();
+    // Looks up and caches transactions for any wallet, not just the signed-in
+    // user's, so it reads and writes with the secret key.
+    const supabase = createSupabaseAdminClient();
 
     // First check if we have this transaction in our local database
     let localTransaction = null;

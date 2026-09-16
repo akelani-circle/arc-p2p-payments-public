@@ -20,7 +20,7 @@
 // This is for debugging/testing - creates wallets manually for existing users
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/utils/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    // Writes wallets for any user by email, so it needs the secret key.
+    const supabase = createSupabaseAdminClient();
 
     // Get the profile by email
     const { data: profile, error: profileError } = await supabase

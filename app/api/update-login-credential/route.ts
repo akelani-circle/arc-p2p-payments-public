@@ -44,20 +44,20 @@ export async function POST(req: NextRequest) {
     // Get the Supabase client
     const supabase = await createSupabaseServerClient();
 
-    // Get user session from Supabase
+    // Verify the user with the Supabase Auth server; getSession() only reads
+    // the cookie and can't be trusted on the server
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json(
         { error: "Unauthorized - No valid session" },
         { status: 401 }
       );
     }
 
-    // Get the user's auth ID from the session
-    const authUserId = session.user.id;
+    const authUserId = user.id;
 
     if (!authUserId) {
       return NextResponse.json(

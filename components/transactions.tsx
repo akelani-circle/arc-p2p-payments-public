@@ -73,7 +73,7 @@ interface Transaction {
 interface Props {
   wallet: Wallet;
   profile: {
-    id: any;
+    id: string;
   } | null;
 }
 
@@ -146,7 +146,7 @@ async function syncTransactions(
         .eq("wallet_id", walletId);
 
       const existingIds = new Set(
-        existing?.map((t: any) => t.circle_transaction_id) || []
+        existing?.map((t: { circle_transaction_id: string }) => t.circle_transaction_id) || []
       );
 
       const newRecords = records.filter(

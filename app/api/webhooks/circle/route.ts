@@ -18,7 +18,7 @@
 
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { resolveBaseUrl } from "@/lib/utils/base-url";
 
@@ -31,7 +31,7 @@ interface Wallet {
   wallet_address: string;
   balance?: number;
   profile_id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface BaseNotification {
@@ -80,7 +80,7 @@ async function findWalletByAddress(
     return null;
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const normalizedAddress = address.trim().toLowerCase();
 
@@ -154,7 +154,7 @@ async function updateWalletBalance(
       return;
     }
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabaseAdminClient();
 
     // Call wallet balance API on this same deployment.
     const baseUrl = await resolveBaseUrl();
@@ -226,7 +226,7 @@ async function processTransaction(
 
   if (existing) {
     // Update existing record with better data when available
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
     if (existing.status !== state) updates.status = state;
     if (parsedAmount > 0 && Number(existing.amount) === 0) updates.amount = parsedAmount;
     if (counterpartyAddress && existing.circle_contract_address !== counterpartyAddress) {
@@ -273,7 +273,7 @@ async function handleWebhookNotification(
     | UserOperationNotification,
   notificationType: NotificationType
 ): Promise<void> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   try {
     // Handle Circle transfers

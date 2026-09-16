@@ -68,6 +68,14 @@ function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+type SearchProfile = {
+  id: string;
+  auth_user_id: string;
+  name?: string;
+  username?: string;
+  email: string;
+};
+
 export function RecipientSearchInput({
   value,
   onChange,
@@ -141,7 +149,7 @@ export function RecipientSearchInput({
         const walletMap = new Map<string, string | undefined>();
         if (platformWallets) {
           for (const w of platformWallets) {
-            const profile = w.profiles as any;
+            const profile = w.profiles as { name?: string } | null;
             walletMap.set(w.wallet_address.toLowerCase(), profile?.name);
           }
         }
@@ -194,7 +202,7 @@ export function RecipientSearchInput({
         const queryLower = query.toLowerCase();
         const results: UserWallet[] = (walletsWithProfiles ?? [])
           .filter((w) => {
-            const profile = w.profiles as any;
+            const profile = w.profiles as unknown as SearchProfile | null;
             if (!profile || profile.auth_user_id === user?.id) return false;
             return (
               (profile.name &&
@@ -208,7 +216,7 @@ export function RecipientSearchInput({
             );
           })
           .map((w) => {
-            const profile = w.profiles as any;
+            const profile = w.profiles as unknown as SearchProfile;
             return {
               id: profile.id,
               email: profile.email,
