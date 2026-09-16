@@ -18,17 +18,35 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { NextResponse } from "next/server";
+import { resolveBaseUrl } from "@/lib/utils/base-url";
 
-const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-  ? process.env.NEXT_PUBLIC_VERCEL_URL
-  : "http://localhost:3000";
+/**
+ * Where to send the user once the code is exchanged.
+ *
+ * forgotPasswordAction sends `redirect_to`; `next` is accepted too so any older
+ * link keeps working. The value is user-controlled, so only a same-origin path
+ * is honoured — an absolute or protocol-relative one would turn this auth
+ * callback into an open redirect.
+ */
+function safeRedirectPath(searchParams: URLSearchParams): string {
+  const requested = searchParams.get("redirect_to") ?? searchParams.get("next");
+  if (!requested?.startsWith("/")) return "/";
+  if (requested.startsWith("//") || requested.startsWith("/\\")) return "/";
+  return requested;
+}
 
 export async function GET(request: Request) {
+  // Read off the inbound request rather than assumed, so redirects and the
+  // sibling-route calls below land on the origin the user actually reached.
+  const baseUrl = await resolveBaseUrl();
   const { searchParams } = new URL(request.url);
 
   const code = searchParams.get("code");
 
-  const nextUrl = searchParams.get("next") ?? "/";
+  // Resolved against baseUrl so the result is normalised, rather than the
+  // bare string concatenation this used to do: that produced a double slash
+  // for the default and dropped the user on "/" instead of the target page.
+  const redirectUrl = new URL(safeRedirectPath(searchParams), baseUrl).toString();
 
   if (code) {
     const supabase = await createSupabaseServerClient();
@@ -58,7 +76,7 @@ export async function GET(request: Request) {
         .single();
 
       if (walletAlreadyExists) {
-        return NextResponse.redirect(`${baseUrl}/${nextUrl}`);
+        return NextResponse.redirect(redirectUrl);
       }
 
       const createdWalletSetResponse = await fetch(`${baseUrl}/api/wallet-set`, {
@@ -71,6 +89,14 @@ export async function GET(request: Request) {
         },
       });
 
+      if (!createdWalletSetResponse.ok) {
+        console.error(
+          "Wallet set creation failed",
+          await createdWalletSetResponse.text()
+        );
+        return NextResponse.redirect(`${baseUrl}/auth/auth-error`);
+      }
+
       const createdWalletSet = await createdWalletSetResponse.json();
 
       const createdWalletResponse = await fetch(`${baseUrl}/api/wallet`, {
@@ -82,6 +108,14 @@ export async function GET(request: Request) {
           "Content-Type": "application/json",
         },
       });
+
+      if (!createdWalletResponse.ok) {
+        console.error(
+          "Wallet creation failed",
+          await createdWalletResponse.text()
+        );
+        return NextResponse.redirect(`${baseUrl}/auth/auth-error`);
+      }
 
       const createdWallet = await createdWalletResponse.json();
 
@@ -99,7 +133,7 @@ export async function GET(request: Request) {
           currency: "USDC"
         });
 
-      return NextResponse.redirect(`${baseUrl}/${nextUrl}`);
+      return NextResponse.redirect(redirectUrl);
     }
   }
 
