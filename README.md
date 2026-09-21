@@ -18,9 +18,11 @@ Modern peer-to-peer payment system. This sample application uses Next.js, Supaba
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
 - [How It Works](#how-it-works)
+- [Upgrading](#upgrading)
 - [Environment Variables](#environment-variables)
 - [User Accounts](#user-accounts)
 - [Available Scripts](#available-scripts)
+- [Testing](#testing)
 - [Security & Usage Model](#security--usage-model)
 
 ## Features
@@ -37,7 +39,7 @@ The app is laid out as a phone screen with a bottom tab bar:
 ## Prerequisites
 
 - **Node.js v22+** — Install via [nvm](https://github.com/nvm-sh/nvm) (`nvm use` will read the `.nvmrc` file)
-- **Supabase CLI** — Install via `npm install -g supabase` or see [Supabase CLI docs](https://supabase.com/docs/guides/cli/getting-started)
+- **`CLOUDSMITH_TOKEN`** — The onramp kit (`@crcl-main/onramp-kit`) is published to Circle's private registry, configured in `.npmrc`. Export the token in the shell where you run `npm install`, or it fails with `E401`. The token is never committed.
 - **Docker Desktop** — [Install Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - Circle **[API key](https://console.circle.com/signin)** and **[Entity Secret](https://developers.circle.com/wallets/dev-controlled/register-entity-secret)**
 - Circle Modular Wallets **client key** — from the [Circle Console](https://console.circle.com/)
@@ -55,11 +57,10 @@ The app is laid out as a phone screen with a bottom tab bar:
 2. Start local Supabase (requires Docker Desktop running):
 
    ```bash
-   npx supabase start
-   npx supabase migration up
+   npm run db:start
    ```
 
-   The output of `npx supabase start` displays the Supabase URL and API keys needed in the next step.
+   This starts Supabase in Docker and applies the migrations in `supabase/migrations`. The output shows the Supabase URL and API keys needed in the next step; run `npm run db:status` to see them again.
 
 3. Set up environment variables:
 
@@ -86,6 +87,18 @@ The app is laid out as a phone screen with a bottom tab bar:
 - **Fund Wallet** uses `@crcl-main/onramp-kit`. The server mints a session (`/api/onramp/session`) for the signed-in user's own wallet, and the browser opens Circle's onramp widget with it
 - Real-time UI updates powered by Supabase Realtime subscriptions
 - Styled with [Tailwind CSS](https://tailwindcss.com) and components from [shadcn/ui](https://ui.shadcn.com/)
+
+## Upgrading
+
+Changes that require action on an existing deployment:
+
+- **Apply the new migration** (`npm run db:start` locally, `npm run supabase -- db push` on a hosted project). It:
+  - makes a wallet address unique per chain (case-insensitively). Before this, a user could register **another user's address** as their own, and the Circle webhook, which uses the first wallet it finds for an address, would then record that person's incoming transfers against the wrong account. **If the migration fails on the unique index, two wallet rows already share an address**: find them with `select lower(wallet_address), count(*) from wallets group by 1 having count(*) > 1`, fix or remove the duplicates, and run it again;
+  - stops users writing `wallets.balance`, `profiles.email` and `profiles.is_active`, and stops them editing their own `transactions` afterwards. Only server code with the secret key writes those now.
+- **Four routes were removed.** `/api/manual-wallet-setup` had no authentication and used the secret key, so **anyone could overwrite any user's wallet address by email**, which redirects the payments people send them. `/api/debug-wallets` was a debug dump. `/api/wallet-set` and `/api/wallet` let anyone create wallets on your Circle account; the sign-in callback now creates the wallet directly.
+- **The wallet APIs now check who is calling.** `/api/wallet/balance`, `/api/wallet/transactions`, `/api/wallet/transactions/[id]` and `/api/onramp/session` were open to anyone (the last three with the secret key or Circle key). They now require a signed-in user and only work on that user's own wallet. The onramp route also refuses a session whose destination is not your own wallet address.
+- **`/api/setup-wallets` validates the address** it is given, and answers `409` if it already belongs to someone else.
+- **The Circle webhook finds wallets by address.** It used to read the first 50 wallets and search those in memory, so once there were more than 50, most incoming transfers were never recorded. It also verifies the exact bytes Circle signed, and refreshes balances directly instead of calling `/api/wallet/balance` over HTTP.
 
 ## Environment Variables
 
@@ -143,6 +156,8 @@ Pre-defined phone numbers and OTPs for testing, configured in `supabase/config.t
 - `npm run build` — Create a production build
 - `npm run start` — Start the production server
 - `npm run lint` — Run ESLint
+- `npm test` — Run the unit tests (no services needed)
+- `npm run test:integration` — Run database tests against the local Supabase (`npm run db:start` first)
 - `npm run supabase` — Run the Supabase CLI (e.g. `npm run supabase -- status`)
 - `npm run db:start` — Start local Supabase
 - `npm run db:stop` — Stop local Supabase
@@ -150,9 +165,23 @@ Pre-defined phone numbers and OTPs for testing, configured in `supabase/config.t
 - `npm run db:reset` — Reset the local database and re-run migrations
 - `npm run db:migration` — Create a new migration (e.g. `npm run db:migration -- add_column`)
 
+## Testing
+
+- `npm test` runs the unit tests in `tests/unit`. They mock Supabase, Circle and the onramp kit, so they need no credentials, Docker or `CLOUDSMITH_TOKEN`. They cover who may call each route (signed-out, someone else's wallet, your own), wallet setup validation, and the webhook, including real signature verification.
+- `npm run test:integration` runs `tests/integration` against the **local** Supabase stack: the row-level-security rules, exercised with real users and real sessions. It reads connection settings from `.env.local`, and creates and deletes its own users.
+
 ## Security & Usage Model
 
 This sample application:
 - Assumes testnet usage only
 - Handles secrets via environment variables
+- Checks that a signed-in user owns the wallet before any wallet API acts on it
 - Is not intended for production use without modification
+
+Known limitations to address before any production use:
+- **Recipient search exposes users to each other.** Any signed-in user can list every other user's name, email and wallet address (that is how recipients are found). Production code should look recipients up by exact match on the server.
+- **Display names are free text.** A user can pick the same name as someone else, so a recipient list can show two "Alice"s. Check the address before sending.
+- **Passkey credentials are readable by other signed-in users** through the `wallets` table. They contain public-key material, not secrets, but production code should serve them only to their owner.
+- **The onramp is only verified against a stub in this repo's tests.** The wallet-ownership check in `/api/onramp/session` sits in front of `@crcl-main/onramp-kit`'s own route handler; test it end to end with the real kit before relying on it.
+
+See `SECURITY.md` for vulnerability reporting guidelines. Please report issues privately via Circle's bug bounty program.

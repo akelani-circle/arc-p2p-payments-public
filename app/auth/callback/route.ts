@@ -19,6 +19,9 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { NextResponse } from "next/server";
 import { resolveBaseUrl } from "@/lib/utils/base-url";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
+import { STORED_BLOCKCHAIN, createWalletSetWithWallet } from "@/lib/circle/wallets";
+import { normalizeAddress } from "@/lib/wallets/address";
 
 /**
  * Where to send the user once the code is exchanged.
@@ -54,7 +57,9 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      const { data: user, error: userIdError } = await supabase
+      // `email` identifies a user to everyone else, so users cannot write it. Sync it
+      // from the verified auth user with the secret key.
+      const { data: user, error: userIdError } = await createSupabaseAdminClient()
         .from("profiles")
         .update({ email: data.user.email })
         .eq("auth_user_id", data.user.id)
@@ -79,59 +84,32 @@ export async function GET(request: Request) {
         return NextResponse.redirect(redirectUrl);
       }
 
-      const createdWalletSetResponse = await fetch(`${baseUrl}/api/wallet-set`, {
-        method: "PUT",
-        body: JSON.stringify({
-          entityName: data.user.email,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!createdWalletSetResponse.ok) {
-        console.error(
-          "Wallet set creation failed",
-          await createdWalletSetResponse.text()
-        );
+      // Called directly rather than through /api/wallet-set and /api/wallet: those had
+      // no authentication (anyone could mint wallets on our Circle account) and this
+      // was their only caller.
+      let createdWallet;
+      try {
+        createdWallet = await createWalletSetWithWallet(data.user.email ?? data.user.id);
+      } catch (walletError) {
+        console.error("Wallet creation failed", walletError);
         return NextResponse.redirect(`${baseUrl}/auth/auth-error`);
       }
 
-      const createdWalletSet = await createdWalletSetResponse.json();
-
-      const createdWalletResponse = await fetch(`${baseUrl}/api/wallet`, {
-        method: "POST",
-        body: JSON.stringify({
-          walletSetId: createdWalletSet.id,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const { error: walletInsertError } = await supabase.from("wallets").insert({
+        profile_id: user.id,
+        circle_wallet_id: createdWallet.id,
+        wallet_type: createdWallet.custodyType,
+        wallet_set_id: createdWallet.walletSetId,
+        wallet_address: normalizeAddress(createdWallet.address),
+        account_type: createdWallet.accountType,
+        blockchain: STORED_BLOCKCHAIN,
+        currency: "USDC",
       });
 
-      if (!createdWalletResponse.ok) {
-        console.error(
-          "Wallet creation failed",
-          await createdWalletResponse.text()
-        );
+      if (walletInsertError) {
+        console.error("Could not save the new wallet:", walletInsertError);
         return NextResponse.redirect(`${baseUrl}/auth/auth-error`);
       }
-
-      const createdWallet = await createdWalletResponse.json();
-
-      await supabase
-        .schema("public")
-        .from("wallets")
-        .upsert({
-          profile_id: user.id,
-          circle_wallet_id: createdWallet.id,
-          wallet_type: createdWallet.custodyType,
-          wallet_set_id: createdWalletSet.id,
-          wallet_address: createdWallet.address,
-          account_type: createdWallet.accountType,
-          blockchain: createdWallet.blockchain,
-          currency: "USDC"
-        });
 
       return NextResponse.redirect(redirectUrl);
     }
