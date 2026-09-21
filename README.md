@@ -39,7 +39,7 @@ The app is laid out as a phone screen with a bottom tab bar:
 ## Prerequisites
 
 - **Node.js v22+** — Install via [nvm](https://github.com/nvm-sh/nvm) (`nvm use` will read the `.nvmrc` file)
-- **Private npm registry** — `@crcl-main/onramp-kit` comes from Circle's private registry. Add the registry and your token to your user-level `~/.npmrc` (not the repo), or `npm install` fails.
+- **Registry token** — `@crcl-main/onramp-kit` comes from Circle's private registry (see `.npmrc`). Export the token variable named there before `npm install`, or it fails with `E401`. Never commit it.
 - **Docker Desktop** — [Install Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - Circle **[API key](https://console.circle.com/signin)** and **[Entity Secret](https://developers.circle.com/wallets/dev-controlled/register-entity-secret)**
 - Circle Modular Wallets **client key** — from the [Circle Console](https://console.circle.com/)
