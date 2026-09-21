@@ -39,7 +39,7 @@ The app is laid out as a phone screen with a bottom tab bar:
 ## Prerequisites
 
 - **Node.js v22+** — Install via [nvm](https://github.com/nvm-sh/nvm) (`nvm use` will read the `.nvmrc` file)
-- **`CLOUDSMITH_TOKEN`** — The onramp kit (`@crcl-main/onramp-kit`) is published to Circle's private registry, configured in `.npmrc`. Export the token in the shell where you run `npm install`, or it fails with `E401`. The token is never committed.
+- **Registry token** — `@crcl-main/onramp-kit` comes from Circle's private registry (see `.npmrc`). Export the token variable named there before `npm install`, or it fails with `E401`. Never commit it.
 - **Docker Desktop** — [Install Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - Circle **[API key](https://console.circle.com/signin)** and **[Entity Secret](https://developers.circle.com/wallets/dev-controlled/register-entity-secret)**
 - Circle Modular Wallets **client key** — from the [Circle Console](https://console.circle.com/)
@@ -167,7 +167,7 @@ Pre-defined phone numbers and OTPs for testing, configured in `supabase/config.t
 
 ## Testing
 
-- `npm test` runs the unit tests in `tests/unit`. They mock Supabase, Circle and the onramp kit, so they need no credentials, Docker or `CLOUDSMITH_TOKEN`. They cover who may call each route (signed-out, someone else's wallet, your own), wallet setup validation, and the webhook, including real signature verification.
+- `npm test` runs the unit tests in `tests/unit`. They mock Supabase, Circle and the onramp kit, so they need no credentials, Docker or registry token. They cover who may call each route (signed-out, someone else's wallet, your own), wallet setup validation, and the webhook, including real signature verification.
 - `npm run test:integration` runs `tests/integration` against the **local** Supabase stack: the row-level-security rules, exercised with real users and real sessions. It reads connection settings from `.env.local`, and creates and deletes its own users.
 
 ## Security & Usage Model
