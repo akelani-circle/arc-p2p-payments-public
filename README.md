@@ -39,7 +39,6 @@ The app is laid out as a phone screen with a bottom tab bar:
 ## Prerequisites
 
 - **Node.js v22+** — Install via [nvm](https://github.com/nvm-sh/nvm) (`nvm use` will read the `.nvmrc` file)
-- **Registry token** — `@crcl-main/onramp-kit` comes from Circle's private registry (see `.npmrc`). Export the token variable named there before `npm install`, or it fails with `E401`. Never commit it.
 - **Docker Desktop** — [Install Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - Circle **[API key](https://console.circle.com/signin)** and **[Entity Secret](https://developers.circle.com/wallets/dev-controlled/register-entity-secret)**
 - Circle Modular Wallets **client key** — from the [Circle Console](https://console.circle.com/)
@@ -84,7 +83,7 @@ The app is laid out as a phone screen with a bottom tab bar:
 - Uses [Circle Modular Wallets](https://developers.circle.com/wallets/modular) for managing transactions with Passkey security
 - Payments are sent as user operations through a bundler, with gas sponsored by a paymaster
 - Uses [Arc Network](https://arc.network/) for fast and low-cost transactions
-- **Fund Wallet** uses `@crcl-main/onramp-kit`. The server mints a session (`/api/onramp/session`) for the signed-in user's own wallet, and the browser opens Circle's onramp widget with it
+- **Fund Wallet** uses `@circle-fin/onramp-kit`. The server mints a session (`/api/onramp/session`) for the signed-in user's own wallet, and the browser opens Circle's onramp widget with it
 - Real-time UI updates powered by Supabase Realtime subscriptions
 - Styled with [Tailwind CSS](https://tailwindcss.com) and components from [shadcn/ui](https://ui.shadcn.com/)
 
@@ -167,7 +166,7 @@ Pre-defined phone numbers and OTPs for testing, configured in `supabase/config.t
 
 ## Testing
 
-- `npm test` runs the unit tests in `tests/unit`. They mock Supabase, Circle and the onramp kit, so they need no credentials, Docker or registry token. They cover who may call each route (signed-out, someone else's wallet, your own), wallet setup validation, and the webhook, including real signature verification.
+- `npm test` runs the unit tests in `tests/unit`. They mock Supabase, Circle and the onramp kit, so they need no credentials or Docker. They cover who may call each route (signed-out, someone else's wallet, your own), wallet setup validation, and the webhook, including real signature verification.
 - `npm run test:integration` runs `tests/integration` against the **local** Supabase stack: the row-level-security rules, exercised with real users and real sessions. It reads connection settings from `.env.local`, and creates and deletes its own users.
 
 ## Security & Usage Model
@@ -182,6 +181,6 @@ Known limitations to address before any production use:
 - **Recipient search exposes users to each other.** Any signed-in user can list every other user's name, email and wallet address (that is how recipients are found). Production code should look recipients up by exact match on the server.
 - **Display names are free text.** A user can pick the same name as someone else, so a recipient list can show two "Alice"s. Check the address before sending.
 - **Passkey credentials are readable by other signed-in users** through the `wallets` table. They contain public-key material, not secrets, but production code should serve them only to their owner.
-- **The onramp is only verified against a stub in this repo's tests.** The wallet-ownership check in `/api/onramp/session` sits in front of `@crcl-main/onramp-kit`'s own route handler; test it end to end with the real kit before relying on it.
+- **The onramp is only verified against a stub in this repo's tests.** The wallet-ownership check in `/api/onramp/session` sits in front of `@circle-fin/onramp-kit`'s own route handler; test it end to end with the real kit before relying on it.
 
 See `SECURITY.md` for vulnerability reporting guidelines. Please report issues privately via Circle's bug bounty program.

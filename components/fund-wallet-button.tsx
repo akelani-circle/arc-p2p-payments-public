@@ -24,7 +24,7 @@ import {
   createOnrampKit,
   fetchOnrampSession,
   type OnrampEventEnvelope,
-} from "@crcl-main/onramp-kit";
+} from "@circle-fin/onramp-kit";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { OnrampSheet } from "@/components/onramp-sheet";

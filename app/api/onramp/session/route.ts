@@ -19,7 +19,7 @@
 import {
   createOnrampServerKit,
   createSessionRouteHandler,
-} from "@crcl-main/onramp-kit/server";
+} from "@circle-fin/onramp-kit/server";
 import type { NextRequest } from "next/server";
 import { API_BASE_URL, ENVIRONMENT } from "@/lib/onramp/server-environment";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";

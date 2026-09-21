@@ -30,7 +30,7 @@ const sdkHandler = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/server-client", () => ({ createSupabaseServerClient: async () => user }));
 vi.mock("@/lib/onramp/server-environment", () => ({ API_BASE_URL: undefined, ENVIRONMENT: "sandbox" }));
 vi.mock("@/lib/onramp/environment", () => ({ WIDGET_BASE_URL: undefined }));
-vi.mock("@crcl-main/onramp-kit/server", () => ({
+vi.mock("@circle-fin/onramp-kit/server", () => ({
   createOnrampServerKit: () => ({}),
   createSessionRouteHandler: () => sdkHandler,
 }));
