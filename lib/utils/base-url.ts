@@ -18,23 +18,11 @@
 
 import { headers } from "next/headers";
 
-/**
- * The origin this app is being served from, for the server-side cases that need
- * an absolute URL: redirects, and route handlers calling sibling handlers.
- *
- * Client code must not use this — a browser fetch to a sibling route should be
- * a relative path, which is same-origin by construction.
- *
- * NEXT_PUBLIC_VERCEL_URL wins when set, so a deployment can pin its public
- * origin. Otherwise the origin is read off the inbound request, which keeps a
- * dev server correct on whatever port it happens to be bound to instead of
- * assuming 3000 and failing CORS.
- */
+// Absolute origin for server-side redirects and route-to-route calls. Client code should use relative paths instead.
 export async function resolveBaseUrl(): Promise<string> {
   const configured = process.env.NEXT_PUBLIC_VERCEL_URL?.trim();
   if (configured) {
-    // Vercel exposes VERCEL_URL as a bare host; .env.example documents it with
-    // a scheme. Accept both.
+     // Vercel exposes VERCEL_URL as a bare host while .env.example documents a scheme, so accept both.
     return /^https?:\/\//.test(configured) ? configured : `https://${configured}`;
   }
 

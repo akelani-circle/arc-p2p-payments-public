@@ -25,7 +25,6 @@ import { resolveBaseUrl } from "@/lib/utils/base-url";
 const ARC_CHAIN_ID = 5042002;
 const ARC_NETWORK_NAME = "Arc Testnet";
 
-// Type definitions
 interface Wallet {
   id: string;
   wallet_address: string;
@@ -71,7 +70,6 @@ type NotificationType =
 
 type TransactionType = "USDC_TRANSFER_IN" | "USDC_TRANSFER_OUT";
 
-// Find wallet by address
 async function findWalletByAddress(
   address: string
 ): Promise<Wallet | null> {
@@ -95,7 +93,6 @@ async function findWalletByAddress(
   }
 
   if (allWallets && allWallets.length > 0) {
-    // Exact match with ARC blockchain
     const exactMatch = allWallets.find(
       (wallet) =>
         wallet.wallet_address.toLowerCase() === normalizedAddress &&
@@ -106,7 +103,6 @@ async function findWalletByAddress(
       return exactMatch;
     }
 
-    // Try without 0x prefix if original has it
     if (normalizedAddress.startsWith("0x")) {
       const withoutPrefix = normalizedAddress.substring(2);
       const prefixMatch = allWallets.find(
@@ -127,7 +123,6 @@ async function findWalletByAddress(
       }
     }
 
-    // Fuzzy match as last resort
     const cleanedAddress = normalizedAddress.replace(/[^a-f0-9]/g, "");
     const fuzzyMatch = allWallets.find(
       (wallet) =>
@@ -142,7 +137,6 @@ async function findWalletByAddress(
   return null;
 }
 
-// Update wallet balance after transactions
 async function updateWalletBalance(
   walletAddress: string
 ): Promise<void> {
@@ -156,7 +150,6 @@ async function updateWalletBalance(
 
     const supabase = createSupabaseAdminClient();
 
-    // Call wallet balance API on this same deployment.
     const baseUrl = await resolveBaseUrl();
     const response = await fetch(`${baseUrl}/api/wallet/balance`, {
       method: "POST",
@@ -174,7 +167,6 @@ async function updateWalletBalance(
 
     const { balance } = await response.json();
 
-    // Update wallet balance in database
     await supabase
       .from("wallets")
       .update({ balance })
@@ -185,7 +177,6 @@ async function updateWalletBalance(
   }
 }
 
-// Process transaction once wallet is found
 async function processTransaction(
   wallet: Wallet,
   transactionType: TransactionType,
@@ -225,7 +216,6 @@ async function processTransaction(
     .single();
 
   if (existing) {
-    // Update existing record with better data when available
     const updates: Record<string, unknown> = {};
     if (existing.status !== state) updates.status = state;
     if (parsedAmount > 0 && Number(existing.amount) === 0) updates.amount = parsedAmount;
@@ -265,7 +255,6 @@ async function processTransaction(
   }
 }
 
-// Handle webhook notification
 async function handleWebhookNotification(
   notification:
     | TransfersNotification
@@ -276,7 +265,6 @@ async function handleWebhookNotification(
   const supabase = createSupabaseAdminClient();
 
   try {
-    // Handle Circle transfers
     if (notificationType === "transfers") {
       const transferNotification = notification as TransfersNotification;
       const { id, state } = transferNotification;
@@ -299,7 +287,6 @@ async function handleWebhookNotification(
           .eq("id", tx.id);
       }
 
-      // Update balance for completed transactions
       if (state === "COMPLETE") {
         let walletAddress = notification.walletAddress;
 
@@ -317,7 +304,6 @@ async function handleWebhookNotification(
       return;
     }
 
-    // Handle modular wallet user operations
     if (notificationType === "modularWallet.userOperation") {
       const userOpNotification = notification as UserOperationNotification;
       const { state, sender } = userOpNotification;
@@ -348,7 +334,6 @@ async function handleWebhookNotification(
       return;
     }
 
-    // Handle modular wallet transfers (inbound/outbound)
     if (notificationType.startsWith("modularWallet")) {
       const modularNotification = notification as ModularWalletNotification;
       const { state, from, to, walletAddress } = modularNotification;
@@ -363,7 +348,6 @@ async function handleWebhookNotification(
         ? "USDC_TRANSFER_IN"
         : "USDC_TRANSFER_OUT";
 
-      // The counterparty is who we sent to (outbound) or received from (inbound)
       const counterpartyAddress = isInbound ? from : to;
 
       let relevantAddress = walletAddress;
@@ -423,7 +407,6 @@ async function handleWebhookNotification(
   }
 }
 
-// Verify Circle's signature
 async function verifyCircleSignature(
   bodyString: string,
   signature: string,
@@ -444,7 +427,6 @@ async function verifyCircleSignature(
   }
 }
 
-// Get Circle's public key
 async function getCirclePublicKey(keyId: string): Promise<string> {
   if (!process.env.CIRCLE_API_KEY) {
     throw new Error("Circle API key is not set");
@@ -471,7 +453,6 @@ async function getCirclePublicKey(keyId: string): Promise<string> {
   return `-----BEGIN PUBLIC KEY-----\n${rawPublicKey.match(/.{1,64}/g)?.join("\n")}\n-----END PUBLIC KEY-----`;
 }
 
-// Main webhook handler
 export async function POST(req: NextRequest) {
   try {
     const signature = req.headers.get("x-circle-signature");
@@ -509,7 +490,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Handle HEAD requests
 export async function HEAD() {
   return NextResponse.json({}, { status: 200 });
 }

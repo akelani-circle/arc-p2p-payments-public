@@ -20,14 +20,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { NextResponse } from "next/server";
 import { resolveBaseUrl } from "@/lib/utils/base-url";
 
-/**
- * Where to send the user once the code is exchanged.
- *
- * forgotPasswordAction sends `redirect_to`; `next` is accepted too so any older
- * link keeps working. The value is user-controlled, so only a same-origin path
- * is honoured — an absolute or protocol-relative one would turn this auth
- * callback into an open redirect.
- */
+// Only same-origin paths are honoured: the redirect target is user-controlled.
 function safeRedirectPath(searchParams: URLSearchParams): string {
   const requested = searchParams.get("redirect_to") ?? searchParams.get("next");
   if (!requested?.startsWith("/")) return "/";
@@ -36,16 +29,13 @@ function safeRedirectPath(searchParams: URLSearchParams): string {
 }
 
 export async function GET(request: Request) {
-  // Read off the inbound request rather than assumed, so redirects and the
-  // sibling-route calls below land on the origin the user actually reached.
+  // Read off the inbound request so redirects land on the origin the user reached.
   const baseUrl = await resolveBaseUrl();
   const { searchParams } = new URL(request.url);
 
   const code = searchParams.get("code");
 
-  // Resolved against baseUrl so the result is normalised, rather than the
-  // bare string concatenation this used to do: that produced a double slash
-  // for the default and dropped the user on "/" instead of the target page.
+  // Resolved against baseUrl so the path is normalised instead of concatenated.
   const redirectUrl = new URL(safeRedirectPath(searchParams), baseUrl).toString();
 
   if (code) {

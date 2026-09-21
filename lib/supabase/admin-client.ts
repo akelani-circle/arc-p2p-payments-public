@@ -18,8 +18,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-// Bypasses row level security. Only for server code that runs without a user
-// session, such as the Circle webhook. Never import this from client code.
+// Bypasses row level security. Server-only, for code with no user session such as the Circle webhook.
 export function createSupabaseAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

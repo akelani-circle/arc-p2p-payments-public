@@ -49,7 +49,6 @@ export default function BottomTabNavigation() {
     router.push("/dashboard");
   };
 
-  // Simplified balance loading effect
   useEffect(() => {
     const loadInitialBalances = async () => {
       if (account.address && !isRefreshing) {
@@ -84,7 +83,6 @@ export default function BottomTabNavigation() {
     return result;
   }
 
-  // Memoized balance formatting
   const formattedWalletBalance = useMemo(() => {
     const chainBalance = web3Balance?.token || 0;
 
@@ -113,10 +111,7 @@ export default function BottomTabNavigation() {
   if (!user?.user_metadata.wallet_setup_complete) return null;
 
   return (
-    // Floating pill nav, lifted from the onramp demo: it hovers over the screen
-    // rather than docking to it, so the content behind stays visible through the
-    // blur. Trigger classes restate the ones TabsList/TabsTrigger set by default
-    // so tailwind-merge drops the docked treatment.
+    // Floating pill nav: the trigger classes restate the defaults so tailwind-merge drops the docked treatment.
     <div className="absolute inset-x-0 bottom-0 z-10 flex justify-center px-5 pt-3 pb-6">
       <TabsList className="flex h-auto items-center gap-2 rounded-full rounded-t-full bg-card/80 p-0 px-2 py-2 text-muted-foreground/50 shadow-[0_8px_24px_rgba(0,0,0,0.35)] ring-1 ring-border backdrop-blur-lg">
         <TabsTrigger

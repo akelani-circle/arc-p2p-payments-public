@@ -14,20 +14,13 @@
 --
 -- SPDX-License-Identifier: Apache-2.0
 
--- Turn row level security back on. It was disabled for development in
--- 20241112173214, which left every table readable and writable by anyone
--- holding the publishable key.
---
--- Signed-in users can read all profiles and wallets, because recipient search
--- looks up other users by name and wallet address. Everything else is limited
--- to the user's own rows. Server code that has no user session, such as the
--- Circle webhook, uses the secret key and bypasses these policies.
+-- Turn row level security back on: 20241112173214 disabled it for development.
 
+-- Signed-in users can read all profiles and wallets for recipient search; everything else is their own rows. Secret-key code bypasses these policies.
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
--- Profiles
 CREATE POLICY "Signed-in users can view profiles" ON public.profiles
     FOR SELECT TO authenticated
     USING (true);
@@ -39,7 +32,6 @@ CREATE POLICY "Users can update own profile" ON public.profiles
     USING (auth_user_id = (SELECT auth.uid()))
     WITH CHECK (auth_user_id = (SELECT auth.uid()));
 
--- Wallets
 CREATE POLICY "Signed-in users can view wallets" ON public.wallets
     FOR SELECT TO authenticated
     USING (true);
@@ -57,7 +49,6 @@ CREATE POLICY "Users can update own wallets" ON public.wallets
         SELECT id FROM public.profiles WHERE auth_user_id = (SELECT auth.uid())
     ));
 
--- Transactions
 CREATE POLICY "Users can view own transactions" ON public.transactions
     FOR SELECT TO authenticated
     USING (profile_id IN (

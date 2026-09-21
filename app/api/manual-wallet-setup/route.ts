@@ -16,8 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// app/api/manual-wallet-setup/route.ts
-// This is for debugging/testing - creates wallets manually for existing users
+// Debug helper: creates wallets by hand for existing users.
 
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
@@ -34,7 +33,6 @@ export async function POST(req: NextRequest) {
     // Writes wallets for any user by email, so it needs the secret key.
     const supabase = createSupabaseAdminClient();
 
-    // Get the profile by email
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
@@ -48,13 +46,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if wallets exist
     const { data: existingWallets } = await supabase
       .from("wallets")
       .select("*")
       .eq("profile_id", profile.id);
 
-    // If wallets exist, update them
     if (existingWallets && existingWallets.length > 0) {
       const arcWallet = existingWallets.find(
         (w) => w.blockchain === "ARC"
@@ -72,7 +68,6 @@ export async function POST(req: NextRequest) {
           .eq("id", arcWallet.id);
       }
     } else {
-      // Create Arc wallet
       await supabase.from("wallets").insert({
         profile_id: profile.id,
         wallet_address:

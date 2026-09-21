@@ -39,7 +39,6 @@ import { ArrowLeft } from "lucide-react";
 const clientKey = process.env.NEXT_PUBLIC_CIRCLE_CLIENT_KEY;
 const clientUrl = process.env.NEXT_PUBLIC_CIRCLE_CLIENT_URL;
 
-// Create Circle transports
 const passkeyTransport = toPasskeyTransport(clientUrl, clientKey);
 
 export default function CodeConfirmation() {

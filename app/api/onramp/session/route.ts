@@ -23,9 +23,7 @@ import {
 import { API_BASE_URL, ENVIRONMENT } from "@/lib/onramp/server-environment";
 import { WIDGET_BASE_URL } from "@/lib/onramp/environment";
 
-// An API key belongs to one environment; the other rejects it. Importing
-// server-environment has already refused to start if the two base URLs
-// disagree, so this only has to catch the key being absent outright.
+// server-environment already refuses to start on mismatched base URLs, so this only catches a missing key.
 const apiKey = process.env.CIRCLE_API_KEY?.trim();
 if (!apiKey) {
   throw new Error(
@@ -33,9 +31,7 @@ if (!apiKey) {
   );
 }
 
-// Both URLs are passed through verbatim. Undefined leaves the kit on its own
-// defaults, https://api.circle.com and https://onramp.arc.io, which is mainnet
-// and moves real money.
+// Undefined leaves the kit on its mainnet defaults, which move real money.
 const server = createOnrampServerKit({
   apiKey,
   baseUrl: API_BASE_URL,

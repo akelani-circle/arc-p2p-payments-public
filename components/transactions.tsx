@@ -30,7 +30,6 @@ import { Input } from "@/components/ui/input";
 
 const ARC_CHAIN_ID = arcTestnet.id;
 
-// Simple transaction format from API
 interface SimpleTransaction {
   hash: string;
   from: string;
@@ -46,7 +45,6 @@ interface SimpleTransaction {
   id: string;
 }
 
-// Response type for the transfers API
 interface TransfersResponse {
   transactions: SimpleTransaction[];
   pagination: {
@@ -57,7 +55,6 @@ interface TransfersResponse {
   error?: string;
 }
 
-// Database transaction type
 interface Transaction {
   id: string;
   status: string;
@@ -84,7 +81,6 @@ async function syncTransactions(
   circleWalletId: string
 ) {
   try {
-    // Fetch transactions from Arc
     const arcResponse = await fetch(
       `/api/wallet/transactions`,
       {
@@ -163,7 +159,6 @@ async function syncTransactions(
       }
     }
 
-    // Return all transactions from database
     const { data: allTransactions, error: fetchError } = await supabase
       .from("transactions")
       .select("*")
@@ -210,7 +205,6 @@ export const Transactions: FunctionComponent<Props> = (props) => {
     );
   }, [formattedData, searchQuery]);
 
-  // Group transactions by month
   const groupedTransactions = useMemo(() => {
     const groups: Record<string, typeof formattedData> = {};
     const now = new Date();
@@ -246,7 +240,6 @@ export const Transactions: FunctionComponent<Props> = (props) => {
     return sortedGroups;
   }, [searchedData]);
 
-  // Transaction type display mapping
   const getTransactionTypeDisplay = (type: string) => {
     if (type === "USDC_TRANSFER_IN" || type === "received") {
       return "Payment received"
