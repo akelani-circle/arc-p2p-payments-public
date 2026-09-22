@@ -20,11 +20,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { arcTestnet } from "@/components/web3-provider";
 
-const ARC_CHAIN_ID = arcTestnet.id; // 5042002
+const ARC_CHAIN_ID = arcTestnet.id;
 const ARC_BLOCKCHAIN = "ARC-TESTNET";
 const ARC_NETWORK_NAME = "Arc Testnet";
 
-// Schema for validating request parameters
 const WalletIdSchema = z.object({
   walletId: z.string().regex(/^0x[a-fA-F0-9]{40}$/, {
     message: "Invalid Ethereum wallet address format",
@@ -55,7 +54,6 @@ export async function POST(req: NextRequest) {
     const { walletId, pageSize, pageAfter, pageBefore, from, to } =
       parseResult.data;
 
-    // Build the Circle API URL with query parameters
     const baseUrl = "https://api.circle.com/v1/w3s/buidl/transfers";
 
     const params = new URLSearchParams();
@@ -70,7 +68,6 @@ export async function POST(req: NextRequest) {
 
     const url = `${baseUrl}?${params.toString()}`;
 
-    // Call the Circle API
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -89,7 +86,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse the Circle API response
     const circleData = await response.json();
 
     interface CircleTransfer {

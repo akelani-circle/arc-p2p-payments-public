@@ -14,18 +14,11 @@
 --
 -- SPDX-License-Identifier: Apache-2.0
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_publication_tables
-    WHERE pubname = 'supabase_realtime'
-      AND schemaname = 'public'
-      AND tablename = 'transactions'
-  ) THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
-    RAISE NOTICE 'Added public.transactions to publication supabase_realtime';
-  ELSE
-    RAISE NOTICE 'public.transactions is already part of publication supabase_realtime';
-  END IF;
-END $$;
+-- Fix issues flagged by the Supabase advisors.
+
+-- handle_new_user is SECURITY DEFINER and callable over /rest/v1/rpc; triggers do not need EXECUTE, so revoke it.
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
+
+-- Nothing filters on these columns: usernames are matched in the browser and transactions are never looked up by network.
+DROP INDEX IF EXISTS public.idx_profiles_username;
+DROP INDEX IF EXISTS public.idx_transactions_network_id;

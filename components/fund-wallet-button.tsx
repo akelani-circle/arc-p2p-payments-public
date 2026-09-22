@@ -42,21 +42,12 @@ type OnrampSession = Awaited<ReturnType<typeof fetchOnrampSession>>;
 
 const SESSION_URL = "/api/onramp/session";
 
-// The widget renders inside the phone. Setting NEXT_PUBLIC_ONRAMP_POPUP to 1 or
-// true opts into opening the hosted experience in a popup window instead, which
-// is the escape hatch for providers whose own `frame-ancestors` refuse to be
-// nested inside a host origin. It has to be read as this exact expression: Next
-// inlines it at build time, so destructuring or dynamic lookup won't work, and
-// `next dev` only picks up a change on restart.
+// NEXT_PUBLIC_ONRAMP_POPUP=1 opens the hosted widget in a popup instead of embedding it. Written literally because Next inlines it at build time.
 const POPUP_REQUESTED = ["1", "true"].includes(
   (process.env.NEXT_PUBLIC_ONRAMP_POPUP ?? "").trim().toLowerCase(),
 );
 
-// Embedding is a sandbox-only capability. The production widget only accepts
-// being framed by origins registered with Circle, so a demo served from
-// localhost gets a cross-origin refusal and an empty sheet instead of the flow.
-// Popup mode has no such constraint, so production always uses it — whatever
-// NEXT_PUBLIC_ONRAMP_POPUP says.
+// Embedding is sandbox-only, so production always uses the popup whatever the flag says.
 const USE_POPUP = POPUP_REQUESTED || CLIENT_ENVIRONMENT === "production";
 
 function tintSurround(session: OnrampSession): OnrampSession {
@@ -67,10 +58,7 @@ function tintSurround(session: OnrampSession): OnrampSession {
   return { ...session, widgetUrl: url.toString() };
 }
 
-/**
- * Replaces the old faucet link. Buys USDC straight into this user's Arc wallet
- * through Circle's onramp widget, embedded over the phone screen.
- */
+// Buys USDC straight into this user's Arc wallet through Circle's onramp widget.
 export function FundWalletButton() {
   const { account } = useWeb3();
   const { refreshBalances } = useBalance();
@@ -80,21 +68,18 @@ export function FundWalletButton() {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const kitRef = useRef<ReturnType<typeof createOnrampKit> | null>(null);
-  // Lazily constructed so nothing touches `window` during SSR. The getter is
-  // synchronous, which openWindow requires.
+  // Lazy so nothing touches window during SSR, and synchronous because openWindow needs it.
   const getKit = () =>
     (kitRef.current ??= createOnrampKit({ widgetBaseUrl: WIDGET_BASE_URL }));
 
-  // Sessions are single-use and openWindow must run synchronously inside the
-  // click handler, so one is always minted ahead of time.
+  // Sessions are single-use and openWindow must run synchronously, so mint one ahead.
   const mintSession = useCallback(async (destinationAddress: string) => {
     setSession(null);
     try {
       const fresh = await fetchOnrampSession({
         url: SESSION_URL,
         body: {
-          // Opaque host identifier. The wallet address is the stable per-user
-          // key available here without extra plumbing.
+          // Opaque host identifier; the wallet address is the stable per-user key here.
           userId: destinationAddress,
           destinationAddress,
           destinationChain: ONRAMP_CHAIN,
@@ -118,8 +103,7 @@ export function FundWalletButton() {
     void mintSession(address);
   }, [address, mintSession]);
 
-  // Every widget event, from either transport. A finished deposit dates the
-  // balance, so it is re-read here.
+  // Any widget event: a finished deposit dates the balance, so re-read it.
   const handleEvent = useCallback(
     (envelope: OnrampEventEnvelope) => {
       if (
@@ -143,10 +127,7 @@ export function FundWalletButton() {
     [refreshBalances],
   );
 
-  // Embedded mode. The widget lives in a sheet over the phone screen, so it
-  // goes up with the sheet and comes down with it. Nothing re-mints here: the
-  // mount consumes the session, and minting on every mount would feed the
-  // effect its own next session forever.
+  // Embedded mode: the mount consumes the session, so nothing re-mints here.
   const containerRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const container = containerRef.current;
@@ -162,14 +143,12 @@ export function FundWalletButton() {
     return () => widget.close();
   }, [sheetOpen, session, address, mintSession, handleEvent]);
 
-  // Closing consumes nothing further, but the mount already spent the session,
-  // so the next purchase needs a fresh one.
+  // The mount already spent the session, so the next purchase needs a fresh one.
   const closeSheet = () => {
     setSheetOpen(false);
     if (!address) return;
     void mintSession(address);
-    // A deposit can settle in the seconds around the close, which produces no
-    // event once the iframe is gone. Re-reading here catches that case.
+    // A deposit can settle around the close with the iframe gone, emitting no event.
     void refreshBalances();
   };
 

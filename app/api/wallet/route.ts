@@ -16,17 +16,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getErrorMessage } from "@/lib/utils/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { circleDeveloperSdk } from "@/lib/utils/developer-controlled-wallets-client";
 
-// The network the rest of the app is pinned to: ARC_CHAIN_ID 5042002 and
-// "Arc Testnet" in the webhook handler both describe Arc Testnet.
+// Arc Testnet: ARC_CHAIN_ID 5042002 and the webhook's "Arc Testnet" are the same network.
 const BLOCKCHAIN = "ARC-TESTNET";
 
-// What goes in the database. Circle reports the wallet's blockchain as
-// "ARC-TESTNET", but every read in this app filters on .eq("blockchain", "ARC")
-// — /api/setup-wallets writes that too — so the stored value is normalised here
-// rather than leaving rows this app cannot find. Change both together.
+// Stored as "ARC" because every read filters on .eq("blockchain", "ARC"), while Circle reports "ARC-TESTNET". Change both together.
 const STORED_BLOCKCHAIN = "ARC";
 
 export async function POST(req: NextRequest) {
@@ -60,8 +57,8 @@ export async function POST(req: NextRequest) {
       { ...wallet, blockchain: STORED_BLOCKCHAIN },
       { status: 201 }
     );
-  } catch (error: any) {
-    console.error(`Wallet creation failed: ${error.message}`);
+  } catch (error) {
+    console.error(`Wallet creation failed: ${getErrorMessage(error)}`);
     return NextResponse.json(
       { error: "Failed to create wallet" },
       { status: 500 }

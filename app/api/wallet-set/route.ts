@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getErrorMessage } from "@/lib/utils/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { circleDeveloperSdk } from "@/lib/utils/developer-controlled-wallets-client";
 
@@ -42,8 +43,8 @@ export async function PUT(req: NextRequest) {
     }
 
     return NextResponse.json({ ...response.data.walletSet }, { status: 201 });
-  } catch (error: any) {
-    console.error(`Wallet set creation failed: ${error.message}`);
+  } catch (error) {
+    console.error(`Wallet set creation failed: ${getErrorMessage(error)}`);
     return NextResponse.json(
       { error: "Failed to create wallet set" },
       { status: 500 }

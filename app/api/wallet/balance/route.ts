@@ -19,9 +19,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import { z } from "zod";
-import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 
-// Schema validation
 const WalletIdSchema = z.object({
   walletId: z.string(),
   blockchain: z.literal("arc"),
@@ -51,10 +50,9 @@ export async function POST(
     const { walletId } = parseResult.data;
     const normalizedWalletId = walletId.toLowerCase();
 
-    // Get the Supabase client
-    const supabase = await createSupabaseServerClient();
+    // The Circle webhook calls this without a user session, so it uses the secret key.
+    const supabase = createSupabaseAdminClient();
 
-    // Fetch the wallet information from the database
     const { data: wallet, error: walletError } = await supabase
       .from("wallets")
       .select("*")
@@ -70,7 +68,6 @@ export async function POST(
       );
     }
 
-    // Get the wallet address
     const walletAddress = wallet.wallet_address;
 
     if (!walletAddress) {
@@ -82,7 +79,6 @@ export async function POST(
     }
 
     try {
-      // Use the blockchain + address endpoint to get balances
       const balanceResponse = await axios.get(
         `https://api.circle.com/v1/w3s/buidl/wallets/ARC-TESTNET/${walletAddress}/balances`,
         {
@@ -96,10 +92,9 @@ export async function POST(
 
       const usdcBalance =
         balanceResponse.data?.data?.tokenBalances?.find(
-          (balance: any) => balance.token?.symbol === "USDC",
+          (balance: { token?: { symbol?: string } }) => balance.token?.symbol === "USDC",
         )?.amount || "0";
 
-      // Update wallet balance in database
       await supabase
         .from("wallets")
         .update({ balance: usdcBalance })
@@ -117,7 +112,6 @@ export async function POST(
         });
       }
 
-      // Return 0 balance instead of error for better UX
       return NextResponse.json({ balance: "0" });
     }
   } catch (error) {
@@ -130,7 +124,6 @@ export async function POST(
       );
     }
 
-    // For any other errors, return 0 balance for better UX
     return NextResponse.json({ balance: "0" });
   }
 }

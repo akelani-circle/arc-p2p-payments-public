@@ -33,9 +33,7 @@ export function OnrampSheet({
   onClose: () => void;
 }) {
   return (
-    // Covers the phone screen below the status bar and above the tab bar. The
-    // nearest positioned ancestor is the dashboard layout's <Tabs>, which is
-    // why inset-0 lands on the screen rather than on this card.
+    // inset-0 lands on the phone screen: the nearest positioned ancestor is the layout's <Tabs>.
     <div className="absolute inset-0 z-20 flex flex-col bg-background animate-screen-in">
       <div className="flex items-center gap-4 px-5 py-4">
         <h2 className="flex-1 text-xl leading-tight font-normal tracking-tight">

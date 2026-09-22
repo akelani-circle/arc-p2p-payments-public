@@ -16,15 +16,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/utils/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const supabase = await createSupabaseServerClient();
 
-    // Get user data
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -33,7 +31,6 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Get all profiles
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("*");
@@ -45,7 +42,6 @@ export async function GET() {
       );
     }
 
-    // Get all wallets
     const { data: wallets, error: walletsError } = await supabase
       .from("wallets")
       .select("*");
@@ -57,7 +53,6 @@ export async function GET() {
       );
     }
 
-    // Check if tables have the expected columns
     const { data: walletsColumns, error: walletsColumnsError } =
       await supabase.rpc("get_table_columns", { table_name: "wallets" });
 
