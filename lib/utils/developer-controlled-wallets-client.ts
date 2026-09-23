@@ -18,10 +18,7 @@
 
 import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 
-// next.config.js refuses to build without these, so they are present by the
-// time anything imports this module. The check is kept so a misconfigured
-// runtime fails with the missing variable named rather than with an opaque 401
-// from Circle on the first call.
+// Kept so a misconfigured runtime names the missing variable instead of failing with an opaque 401.
 const { CIRCLE_API_KEY, CIRCLE_ENTITY_SECRET } = process.env;
 
 if (!CIRCLE_API_KEY?.trim()) {
@@ -32,13 +29,7 @@ if (!CIRCLE_ENTITY_SECRET?.trim()) {
   throw new Error("CIRCLE_ENTITY_SECRET environment variable is missing or empty");
 }
 
-/**
- * Server-only Circle client for the developer-controlled wallet set that backs
- * the sign-in flow. The entity secret encrypts every write, so this must never
- * be reachable from the browser bundle. Neither variable is NEXT_PUBLIC_, so an
- * accidental client import inlines them as undefined and throws above rather
- * than shipping the secret.
- */
+// Server-only Circle client: the entity secret must never reach the browser bundle.
 export const circleDeveloperSdk = initiateDeveloperControlledWalletsClient({
   apiKey: CIRCLE_API_KEY,
   entitySecret: CIRCLE_ENTITY_SECRET,

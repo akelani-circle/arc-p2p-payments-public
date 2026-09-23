@@ -16,12 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// File: /app/api/update-login-credential/route.ts
 import { type NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { z } from "zod";
 
-// Schema validation
 const CredentialSchema = z.object({
   // A serialized passkey credential: JSON, and small.
   credential: z
@@ -39,7 +37,6 @@ const CredentialSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    // Parse and validate the request body
     const body = await req.json();
     const parseResult = CredentialSchema.safeParse(body);
 
@@ -52,11 +49,9 @@ export async function POST(req: NextRequest) {
 
     const { credential } = parseResult.data;
 
-    // Get the Supabase client
     const supabase = await createSupabaseServerClient();
 
-    // Verify the user with the Supabase Auth server; getSession() only reads
-    // the cookie and can't be trusted on the server
+    // getSession() only reads the cookie, so verify against the auth server.
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -77,7 +72,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // First, get the profile associated with the auth user
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id")
@@ -94,7 +88,6 @@ export async function POST(req: NextRequest) {
 
     const profileId = profile.id;
 
-    // Update the wallet with the new passkey credential using profile_id
     const { data, error } = await supabase
       .from("wallets")
       .update({ passkey_credential: credential })
@@ -109,7 +102,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Return success response
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error in update-login-credential endpoint:", error);

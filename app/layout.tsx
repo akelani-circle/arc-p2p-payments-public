@@ -26,8 +26,7 @@ import { BalanceProvider } from "@/contexts/balanceContext";
 import { DeviceFrame } from "@/components/device-frame";
 import { StatusBar } from "@/components/status-bar";
 
-// The three families the onramp widget ships under its `arc` brand: DM Sans for
-// body and headers, Space Grotesk for large display type, Space Mono for code.
+// The three families the onramp widget ships under its arc brand.
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" });
 const spaceMono = Space_Mono({
@@ -58,8 +57,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      // `dark` is fixed rather than toggled: the Arc palette is the only theme,
-      // and the class is what the remaining `dark:` utilities key off.
+      // Fixed dark: the Arc palette is the only theme, and the dark: utilities key off it.
       className={`dark h-full font-sans antialiased ${dmSans.variable} ${spaceGrotesk.variable} ${spaceMono.variable}`}
       suppressHydrationWarning
     >

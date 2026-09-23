@@ -16,11 +16,9 @@
 
 -- Fix issues flagged by the Supabase advisors.
 
--- handle_new_user is a SECURITY DEFINER trigger function. Anyone could call it
--- through /rest/v1/rpc. Triggers do not need EXECUTE to fire, so revoke it.
+-- handle_new_user is SECURITY DEFINER and callable over /rest/v1/rpc; triggers do not need EXECUTE, so revoke it.
 REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
 
--- Nothing filters on these columns. Recipient search matches usernames in the
--- browser, and transactions are never looked up by network.
+-- Nothing filters on these columns: usernames are matched in the browser and transactions are never looked up by network.
 DROP INDEX IF EXISTS public.idx_profiles_username;
 DROP INDEX IF EXISTS public.idx_transactions_network_id;

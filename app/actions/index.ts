@@ -30,29 +30,22 @@ export const signInAction = async (formData: FormData) => {
   const supabase = await createSupabaseServerClient();
 
   if (isPasskeyLogin) {
-    // For passkey logins, we'll try to sign in with email and a predefined password
-    // This is not secure but works as a fallback
-    // The email should be verified by checking the passkey_credential in wallets
+    // Passkey logins fall back to a shared default password, then to OTP.
 
     try {
-      // First check if this is a legitimate passkey login by checking cookies
       const cookieStore = await cookies();
       const passkeyEmail = cookieStore.get("passkey_email")?.value;
 
       if (passkeyEmail && passkeyEmail === email) {
-        // This is a legitimate passkey login, so we can use a special flow
-        // Try a standard login first with a default password (this would be set in your initial user setup)
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
-          password: "passkey-default-pw", // You would set this during user setup
+          password: "passkey-default-pw",
         });
 
         if (!error) {
-          // Successfully logged in
           return redirect("/dashboard");
         }
 
-        // If that fails, use OTP
         const { error: otpError } = await supabase.auth.signInWithOtp({
           email,
           options: {
@@ -68,7 +61,6 @@ export const signInAction = async (formData: FormData) => {
           );
         }
 
-        // Successfully initiated OTP login
         return encodedRedirect(
           "success",
           "/sign-up",
@@ -81,7 +73,6 @@ export const signInAction = async (formData: FormData) => {
     }
   }
 
-  // Regular password login
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,

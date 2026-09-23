@@ -93,14 +93,12 @@ export function RecipientSearchInput({
     return /^0x[a-fA-F0-9]{40}$/.test(address);
   };
 
-  // Clear selection when parent resets value
   useEffect(() => {
     if (!value) {
       setSelectedUser(null);
     }
   }, [value]);
 
-  // Fetch recent recipients from outbound transactions
   useEffect(() => {
     const fetchRecentRecipients = async () => {
       try {
@@ -117,7 +115,6 @@ export function RecipientSearchInput({
           .single();
         if (!profile) return;
 
-        // Get outbound transactions ordered by most recent, with the recipient address
         const { data: outboundTxs } = await supabase
           .from('transactions')
           .select('circle_contract_address, created_at')
@@ -128,7 +125,6 @@ export function RecipientSearchInput({
 
         if (!outboundTxs || outboundTxs.length === 0) return;
 
-        // Deduplicate by address, keep most recent first, limit to 10
         const seen = new Set<string>();
         const uniqueAddresses: string[] = [];
         for (const tx of outboundTxs) {
@@ -140,7 +136,6 @@ export function RecipientSearchInput({
           }
         }
 
-        // Look up which addresses belong to platform wallets
         const { data: platformWallets } = await supabase
           .from('wallets')
           .select('wallet_address, profiles(name)')
@@ -237,7 +232,6 @@ export function RecipientSearchInput({
     []
   );
 
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.length >= 2) {
@@ -250,7 +244,6 @@ export function RecipientSearchInput({
     return () => clearTimeout(timer);
   }, [searchQuery, searchUsers]);
 
-  // Open overlay with entrance animation
   const handleOpen = useCallback(() => {
     setMounted(true);
     requestAnimationFrame(() => {
@@ -260,7 +253,6 @@ export function RecipientSearchInput({
     });
   }, []);
 
-  // Close overlay with exit animation
   const handleClose = useCallback(() => {
     setVisible(false);
     setTimeout(() => {

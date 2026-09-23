@@ -26,9 +26,7 @@ export default defineConfig([
   globalIgnores([".next/", "next-env.d.ts"]),
   {
     rules: {
-      // React Compiler checks flag patterns this app relies on (loading flags
-      // set on mount, refs read during render, a large wallet setup effect).
-      // Rewriting those is out of scope, so flag, don't fail.
+      // React Compiler flags patterns this app relies on, so warn instead of failing.
       "react-hooks/immutability": "warn",
       "react-hooks/refs": "warn",
       "react-hooks/set-state-in-effect": "warn",

@@ -27,7 +27,6 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 
 export function useWalletBalances() {
   const { account, isConnected, isInitialized } = useWeb3();
-  // Create Supabase client once per hook instance
   const supabaseRef = useRef(createSupabaseBrowserClient());
 
   const [balance, setBalance] = useState({
@@ -36,7 +35,6 @@ export function useWalletBalances() {
     loading: true,
   });
 
-  // Use refs to track if balances have been loaded and prevent infinite loops
   const balancesLoadedRef = useRef(false);
   const prevAddressRef = useRef<string | null>(null);
   const isRefreshingRef = useRef(false);
@@ -46,13 +44,11 @@ export function useWalletBalances() {
     balance: string;
   }
 
-  // Fetch balance directly from Supabase
   const fetchBalanceFromDB = useCallback(
     async (address: string): Promise<string> => {
       if (!address) return "0";
 
       try {
-        // Query the database directly
         const { data, error } = await supabaseRef.current
           .from("wallets")
           .select("balance")
@@ -74,7 +70,6 @@ export function useWalletBalances() {
     [],
   );
 
-  // Fetch balance from API
   const fetchBalanceFromAPI = useCallback(
     async (address: string): Promise<string> => {
       if (!address) return "0";
@@ -97,7 +92,6 @@ export function useWalletBalances() {
     [],
   );
 
-  // Load initial balances from DB, then refresh from API
   const loadBalances = useCallback(async () => {
     if (!isConnected || isRefreshingRef.current) return;
 
@@ -108,27 +102,22 @@ export function useWalletBalances() {
 
     isRefreshingRef.current = true;
 
-    // First set loading state
     setBalance((prev) => ({
       ...prev,
       loading: true,
     }));
 
     try {
-      // STEP 1: Try to get balance from DB first (fast)
       const dbBalance = await fetchBalanceFromDB(account.address);
 
-      // Update state with DB value immediately (faster UX)
       setBalance((prev) => ({
         native: prev.native,
         token: parseFloat(dbBalance) || 0,
-        loading: true, // Keep loading while we fetch from API
+        loading: true,
       }));
 
-      // STEP 2: Then fetch from API to ensure latest value (slower but accurate)
       const apiBalance = await fetchBalanceFromAPI(account.address);
 
-      // Update state with API value and finish loading
       const finalBalance = parseFloat(apiBalance) || 0;
       prevBalanceRef.current = finalBalance;
       setBalance((prev) => ({
@@ -148,7 +137,6 @@ export function useWalletBalances() {
     }
   }, [account, fetchBalanceFromDB, fetchBalanceFromAPI, isConnected]);
 
-  // Helper to check if account has changed
   const hasAccountChanged = useCallback(() => {
     const prev = prevAddressRef.current;
     const current = account.address;
@@ -158,10 +146,8 @@ export function useWalletBalances() {
     return prev !== current;
   }, [account]);
 
-  // Track previous balance for realtime toast dedup
   const prevBalanceRef = useRef<number | null>(null);
 
-  // Handle realtime balance updates
   const updateWalletBalance = useCallback(
     (payload: RealtimePostgresUpdatePayload<Record<string, string>>) => {
       const newBalance = Number(payload.new.balance);
@@ -190,7 +176,6 @@ export function useWalletBalances() {
     [],
   );
 
-  // Initialize balances when account changes or on first load
   useEffect(() => {
     if (!isInitialized) return;
 
@@ -215,7 +200,6 @@ export function useWalletBalances() {
     }
   }, [isConnected, isInitialized, loadBalances, hasAccountChanged]);
 
-  // Set up realtime subscription for wallet updates
   useEffect(() => {
     if (realtimeChannelRef.current) {
       supabaseRef.current.removeChannel(realtimeChannelRef.current);

@@ -42,7 +42,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get user session
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
@@ -52,7 +51,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user profile
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select()
@@ -96,18 +94,15 @@ export async function POST(req: NextRequest) {
       walletAddress = normalizeAddress(publicKey.slice(0, 42));
     }
 
-    // Store the credential string for database storage
     const credentialString =
       typeof credential === "string" ? credential : JSON.stringify(credential);
 
-    // Check if wallet record exists for this profile
     const { data: existingWallets } = await supabase
       .from("wallets")
       .select()
       .eq("profile_id", profileData.id);
 
     if (existingWallets && existingWallets.length > 0) {
-      // Update existing Arc wallet
       const arcWallet = existingWallets.find(
         (w) => w.blockchain === "ARC"
       );
@@ -127,7 +122,6 @@ export async function POST(req: NextRequest) {
           return walletWriteFailed(updateError);
         }
       } else {
-        // Create new Arc wallet if only old chain wallets exist
         const { error: insertError } = await supabase.from("wallets").insert({
           profile_id: profileData.id,
           wallet_address: walletAddress,
@@ -145,7 +139,6 @@ export async function POST(req: NextRequest) {
         }
       }
     } else {
-      // Create new wallet record (Arc only)
       const { error: insertError } = await supabase.from("wallets").insert({
         profile_id: profileData.id,
         wallet_address: walletAddress,
@@ -163,7 +156,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Update user metadata to mark wallet setup as complete
     const { error: updateUserError } = await supabase.auth.updateUser({
       data: {
         wallet_setup_complete: true,
@@ -175,7 +167,6 @@ export async function POST(req: NextRequest) {
       console.error("Error updating user metadata:", updateUserError);
     }
 
-    // Set a cookie to indicate successful wallet setup
     const headers = new Headers();
     headers.append(
       "Set-Cookie",

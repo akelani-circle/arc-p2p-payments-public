@@ -28,11 +28,10 @@ import {
 } from "@/lib/auth/session";
 import { sameAddress } from "@/lib/wallets/address";
 
-const ARC_CHAIN_ID = arcTestnet.id; // 5042002
+const ARC_CHAIN_ID = arcTestnet.id;
 const ARC_BLOCKCHAIN = "ARC-TESTNET";
 const ARC_NETWORK_NAME = "Arc Testnet";
 
-// Schema for validating request parameters
 const WalletIdSchema = z.object({
   walletId: z.string().regex(/^0x[a-fA-F0-9]{40}$/, {
     message: "Invalid Ethereum wallet address format",
@@ -89,7 +88,6 @@ export async function POST(req: NextRequest) {
 
     const url = `${baseUrl}?${params.toString()}`;
 
-    // Call the Circle API
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -108,7 +106,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse the Circle API response
     const circleData = await response.json();
 
     interface CircleTransfer {

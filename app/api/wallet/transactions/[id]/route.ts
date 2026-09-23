@@ -66,7 +66,6 @@ export async function GET(
           typeof address === "string" && sameAddress(address, ownWallet.wallet_address)
       );
 
-    // First check if we have this transaction in our local database
     let localTransaction = null;
 
     if (id.startsWith("0x")) {
@@ -141,7 +140,6 @@ export async function GET(
       }
     }
 
-    // If we found the transaction in our database, return it
     if (localTransaction) {
       const transaction = {
         id: localTransaction.id,
@@ -171,7 +169,6 @@ export async function GET(
       return NextResponse.json({ transaction });
     }
 
-    // If not found in database, proceed with Circle API calls
     const transferUrl = `https://api.circle.com/v1/w3s/buidl/transfers/${id}`;
     const transferResponse = await fetch(transferUrl, {
       method: "GET",
@@ -211,7 +208,6 @@ export async function GET(
           tokenAddress: transfer.tokenAddress || "",
         };
 
-        // Try to store this transaction data in our database
         try {
           const wallet = { id: ownWallet.id, profile_id: ownWallet.profile_id };
 
@@ -248,7 +244,6 @@ export async function GET(
       }
     }
 
-    // If not found by direct ID, try searching by txHash
     const txHashRegex = /^0x[a-fA-F0-9]{64}$/;
     const isTransactionHash = txHashRegex.test(id);
 
@@ -327,7 +322,6 @@ export async function GET(
         }
       }
 
-      // If not found, try transaction-receipt API as last resort
       const receiptUrl = `https://api.circle.com/v1/w3s/buidl/transactions/${ARC_BLOCKCHAIN}/${id}/receipt`;
 
       const receiptResponse = await fetch(receiptUrl, {

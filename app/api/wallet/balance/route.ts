@@ -29,7 +29,6 @@ import {
 import { sameAddress } from "@/lib/wallets/address";
 import { refreshWalletBalance } from "@/lib/wallets/refresh-balance";
 
-// Schema validation
 const WalletIdSchema = z.object({
   walletId: z.string(),
   blockchain: z.literal("arc"),
@@ -82,7 +81,6 @@ export async function POST(
         });
       }
 
-      // Return 0 balance instead of error for better UX
       return NextResponse.json({ balance: "0" });
     }
   } catch (error) {
@@ -95,7 +93,6 @@ export async function POST(
       );
     }
 
-    // For any other errors, return 0 balance for better UX
     return NextResponse.json({ balance: "0" });
   }
 }

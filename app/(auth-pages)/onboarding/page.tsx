@@ -49,7 +49,6 @@ export default function Onboarding() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      // Create initial profile
       const { error: profileError } = await supabase
         .from("profiles")
         .insert({

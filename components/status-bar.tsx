@@ -19,8 +19,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-// lucide's `signal`, `wifi` and `battery-full` are the same paths the onramp
-// demo hand-rolled, so the chrome renders identically without a second icon set.
 import { BatteryFull, Signal, Wifi } from 'lucide-react'
 
 function useClock() {
