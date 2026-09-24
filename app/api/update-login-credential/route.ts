@@ -21,7 +21,18 @@ import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { z } from "zod";
 
 const CredentialSchema = z.object({
-  credential: z.string(),
+  // A serialized passkey credential: JSON, and small.
+  credential: z
+    .string()
+    .max(16_384)
+    .refine((value) => {
+      try {
+        JSON.parse(value);
+        return true;
+      } catch {
+        return false;
+      }
+    }, "credential must be JSON"),
 });
 
 export async function POST(req: NextRequest) {

@@ -20,7 +20,11 @@ import {
   createOnrampServerKit,
   createSessionRouteHandler,
 } from "@crcl-main/onramp-kit/server";
+import type { NextRequest } from "next/server";
 import { API_BASE_URL, ENVIRONMENT } from "@/lib/onramp/server-environment";
+import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { forbidden, getAuthenticatedUser, getOwnWallet, unauthorized } from "@/lib/auth/session";
+import { sameAddress } from "@/lib/wallets/address";
 import { WIDGET_BASE_URL } from "@/lib/onramp/environment";
 
 // server-environment already refuses to start on mismatched base URLs, so this only catches a missing key.
@@ -38,4 +42,38 @@ const server = createOnrampServerKit({
   widgetBaseUrl: WIDGET_BASE_URL,
 });
 
-export const POST = createSessionRouteHandler(server);
+const sessionHandler = createSessionRouteHandler(server);
+
+// The kit's handler takes the destination straight from the request body. Left as is,
+// anyone could mint a session that delivers funds to any address, signed in or not.
+// So: signed-in users only, and the destination must be the caller's own wallet.
+// Everything else in the body is passed to the kit untouched.
+export async function POST(req: NextRequest) {
+  const supabase = await createSupabaseServerClient();
+  const user = await getAuthenticatedUser(supabase);
+  if (!user) return unauthorized();
+
+  const ownWallet = await getOwnWallet(supabase, user.id);
+  if (!ownWallet) return forbidden("You do not have a wallet yet");
+
+  const body = await req.json().catch(() => null);
+  if (
+    !body ||
+    typeof body !== "object" ||
+    typeof body.destinationAddress !== "string" ||
+    !sameAddress(body.destinationAddress, ownWallet.wallet_address)
+  ) {
+    return forbidden("Funds can only be delivered to your own wallet");
+  }
+
+  const headers = new Headers(req.headers);
+  headers.delete("content-length"); // the body below is a different length
+
+  return sessionHandler(
+    new Request(req.url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ ...body, destinationAddress: ownWallet.wallet_address }),
+    })
+  );
+}

@@ -19,6 +19,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { arcTestnet } from "@/components/web3-provider";
+import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import {
+  forbidden,
+  getAuthenticatedUser,
+  getOwnWallet,
+  unauthorized,
+} from "@/lib/auth/session";
+import { sameAddress } from "@/lib/wallets/address";
 
 const ARC_CHAIN_ID = arcTestnet.id;
 const ARC_BLOCKCHAIN = "ARC-TESTNET";
@@ -38,6 +46,12 @@ const WalletIdSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // The Circle API key is the app's, so listing a wallet's transfers must be the
+    // signed-in user's own wallet.
+    const supabase = await createSupabaseServerClient();
+    const user = await getAuthenticatedUser(supabase);
+    if (!user) return unauthorized();
+
     const body = await req.json();
     const parseResult = WalletIdSchema.safeParse(body);
 
@@ -54,6 +68,12 @@ export async function POST(req: NextRequest) {
     const { walletId, pageSize, pageAfter, pageBefore, from, to } =
       parseResult.data;
 
+    const ownWallet = await getOwnWallet(supabase, user.id);
+    if (!ownWallet || !sameAddress(ownWallet.wallet_address, walletId)) {
+      return forbidden();
+    }
+
+    // Build the Circle API URL with query parameters
     const baseUrl = "https://api.circle.com/v1/w3s/buidl/transfers";
 
     const params = new URLSearchParams();

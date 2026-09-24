@@ -20,7 +20,8 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin-client";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { resolveBaseUrl } from "@/lib/utils/base-url";
+import { refreshWalletBalance } from "@/lib/wallets/refresh-balance";
+import { normalizeAddress } from "@/lib/wallets/address";
 
 const ARC_CHAIN_ID = 5042002;
 const ARC_NETWORK_NAME = "Arc Testnet";
@@ -70,6 +71,14 @@ type NotificationType =
 
 type TransactionType = "USDC_TRANSFER_IN" | "USDC_TRANSFER_OUT";
 
+// A 20-byte address, with or without the 0x prefix. Checked before it goes near a
+// query, because ilike treats % and _ as wildcards.
+const ADDRESS = /^(0x)?[0-9a-f]{40}$/;
+
+// Find wallet by address. Queries for the one wallet rather than reading a page of
+// them: the old version fetched the first 50 wallets (passkey credentials included)
+// and searched those in memory, so once there were more than 50, most wallets were
+// never found and their transactions and balances were silently dropped.
 async function findWalletByAddress(
   address: string
 ): Promise<Wallet | null> {
@@ -78,62 +87,32 @@ async function findWalletByAddress(
     return null;
   }
 
-  const supabase = createSupabaseAdminClient();
-
-  const normalizedAddress = address.trim().toLowerCase();
-
-  const { data: allWallets, error: allWalletsError } = await supabase
-    .from("wallets")
-    .select("*")
-    .limit(50);
-
-  if (allWalletsError) {
-    console.error("Error fetching wallets:", allWalletsError);
+  const normalizedAddress = normalizeAddress(address);
+  if (!ADDRESS.test(normalizedAddress)) {
+    console.error("Ignoring a malformed wallet address in a notification");
     return null;
   }
 
-  if (allWallets && allWallets.length > 0) {
-    const exactMatch = allWallets.find(
-      (wallet) =>
-        wallet.wallet_address.toLowerCase() === normalizedAddress &&
-        wallet.blockchain === "ARC"
-    );
+  const supabase = createSupabaseAdminClient();
 
-    if (exactMatch) {
-      return exactMatch;
+  // Some notifications omit or add the 0x prefix.
+  const bare = normalizedAddress.replace(/^0x/, "");
+  for (const candidate of [`0x${bare}`, bare]) {
+    const { data, error } = await supabase
+      .from("wallets")
+      .select("id, wallet_address, profile_id, balance")
+      .ilike("wallet_address", candidate)
+      .eq("blockchain", "ARC")
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error looking up wallet:", error);
+      return null;
     }
-
-    if (normalizedAddress.startsWith("0x")) {
-      const withoutPrefix = normalizedAddress.substring(2);
-      const prefixMatch = allWallets.find(
-        (wallet) => wallet.wallet_address.toLowerCase() === withoutPrefix
-      );
-
-      if (prefixMatch) {
-        return prefixMatch;
-      }
-    } else {
-      const withPrefix = "0x" + normalizedAddress;
-      const prefixMatch = allWallets.find(
-        (wallet) => wallet.wallet_address.toLowerCase() === withPrefix
-      );
-
-      if (prefixMatch) {
-        return prefixMatch;
-      }
-    }
-
-    const cleanedAddress = normalizedAddress.replace(/[^a-f0-9]/g, "");
-    const fuzzyMatch = allWallets.find(
-      (wallet) =>
-        wallet.wallet_address.toLowerCase().replace(/[^a-f0-9]/g, "") ===
-        cleanedAddress
-    );
-
-    if (fuzzyMatch) {
-      return fuzzyMatch;
-    }
+    if (data) return data as Wallet;
   }
+
   return null;
 }
 
@@ -148,30 +127,9 @@ async function updateWalletBalance(
       return;
     }
 
-    const supabase = createSupabaseAdminClient();
-
-    const baseUrl = await resolveBaseUrl();
-    const response = await fetch(`${baseUrl}/api/wallet/balance`, {
-      method: "POST",
-      body: JSON.stringify({
-        walletId: wallet.wallet_address,
-        blockchain: "arc",
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) {
-      console.error(`Balance API error: ${response.status}`);
-      return;
-    }
-
-    const { balance } = await response.json();
-
-    await supabase
-      .from("wallets")
-      .update({ balance })
-      .eq("wallet_address", wallet.wallet_address)
-      .eq("blockchain", "ARC");
+    // Read straight from Circle. This used to call our own /api/wallet/balance over
+    // HTTP, which is why that route had to be open to unauthenticated callers.
+    await refreshWalletBalance(wallet);
   } catch (error) {
     console.error("Failed to update wallet balance:", error);
   }
@@ -465,16 +423,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const bodyString = JSON.stringify(body);
+    // Circle signs the exact bytes it sent, so verify those, not a re-serialization.
+    const rawBody = await req.text();
 
     const isVerified = await verifyCircleSignature(
-      bodyString,
+      rawBody,
       signature,
       keyId
     );
     if (!isVerified) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+    }
+
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
     await handleWebhookNotification(body.notification, body.notificationType);

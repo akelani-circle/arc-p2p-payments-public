@@ -18,6 +18,18 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { isWalletAddress, normalizeAddress } from "@/lib/wallets/address";
+
+/** 23505 = the address already belongs to another wallet (see migration 20260918120000). */
+function walletWriteFailed(error: { code?: string }) {
+  if (error.code === "23505") {
+    return NextResponse.json(
+      { error: "That wallet address is already registered to another account" },
+      { status: 409 }
+    );
+  }
+  return NextResponse.json({ error: "Could not create wallet" }, { status: 500 });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,25 +62,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    const parsedCredential = JSON.parse(credential);
+    // Parse the credential
+    let parsedCredential;
+    try {
+      parsedCredential = JSON.parse(credential);
+    } catch {
+      return NextResponse.json({ error: "Credential must be valid JSON" }, { status: 400 });
+    }
 
-    let walletAddress;
+    // Determine which address to use. It becomes the address other people pay, so it
+    // must be a real address, never free text.
+    let walletAddress: string;
 
     if (circleAddress) {
-      walletAddress = circleAddress;
+      if (!isWalletAddress(circleAddress)) {
+        return NextResponse.json({ error: "circleAddress is not a valid address" }, { status: 400 });
+      }
+      walletAddress = normalizeAddress(circleAddress);
     } else {
-      const publicKey = parsedCredential.publicKey;
+      const publicKey = parsedCredential?.publicKey;
 
       const isValidPublicKey =
-        publicKey &&
+        typeof publicKey === "string" &&
         publicKey.startsWith("0x") &&
         /^0x[0-9a-fA-F]{40,}$/.test(publicKey);
 
       if (!isValidPublicKey) {
-        throw new Error(`Invalid public key format: ${publicKey}`);
+        return NextResponse.json({ error: "Invalid public key format" }, { status: 400 });
       }
 
-      walletAddress = publicKey.slice(0, 42).toLowerCase();
+      walletAddress = normalizeAddress(publicKey.slice(0, 42));
     }
 
     const credentialString =
@@ -96,6 +119,7 @@ export async function POST(req: NextRequest) {
 
         if (updateError) {
           console.error("Error updating Arc wallet:", updateError);
+          return walletWriteFailed(updateError);
         }
       } else {
         const { error: insertError } = await supabase.from("wallets").insert({
@@ -111,6 +135,7 @@ export async function POST(req: NextRequest) {
 
         if (insertError) {
           console.error("Error inserting Arc wallet:", insertError);
+          return walletWriteFailed(insertError);
         }
       }
     } else {
@@ -127,10 +152,7 @@ export async function POST(req: NextRequest) {
 
       if (insertError) {
         console.error("Error inserting new wallet:", insertError);
-        return NextResponse.json(
-          { error: "Could not create wallet" },
-          { status: 500 }
-        );
+        return walletWriteFailed(insertError);
       }
     }
 
