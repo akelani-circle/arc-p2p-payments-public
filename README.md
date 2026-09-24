@@ -1,8 +1,8 @@
-# Arc Fintech Starter App
+# Arc P2P Payments
 
 Modern peer-to-peer payment system. This sample application uses Next.js, Supabase, and Circle Modular Wallets with Passkey security to demonstrate a seamless, gasless P2P payment system on the Arc Network.
 
-<img width="215" height="465" alt="Fintech Starter App dashboard" src="public/screenshot.png" />
+<img alt="P2P Payments dashboard" src="public/screenshot.png" />
 
 ## Table of Contents
 
@@ -18,8 +18,7 @@ Modern peer-to-peer payment system. This sample application uses Next.js, Supaba
 
 - **Node.js v22+** — Install via [nvm](https://github.com/nvm-sh/nvm)
 - **Registry token** — `@crcl-main/onramp-kit` comes from Circle's private registry (see `.npmrc`). Export the token variable named there before `npm install`, or it fails with `E401`
-- **Supabase CLI** — Install via `npm install -g supabase` or see [Supabase CLI docs](https://supabase.com/docs/guides/cli/getting-started)
-- **Docker Desktop** (only if using the local Supabase path) — [Install Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- **Docker Desktop** — Runs Supabase locally. [Install Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - Circle **[API key](https://console.circle.com/signin)** and **[Entity Secret](https://developers.circle.com/wallets/dev-controlled/register-entity-secret)**
 
 ## Getting Started
@@ -27,8 +26,8 @@ Modern peer-to-peer payment system. This sample application uses Next.js, Supaba
 1. Clone the repository and install dependencies:
 
    ```bash
-   git clone git@github.com:akelani-circle/arc-p2p-payments.git
-   cd arc-p2p-payments
+   git clone git@github.com:akelani-circle/arc-p2p-payments-public.git
+   cd arc-p2p-payments-public
    npm install
    ```
 
@@ -40,12 +39,7 @@ Modern peer-to-peer payment system. This sample application uses Next.js, Supaba
 
    Then edit `.env.local` and fill in all required values (see [Environment Variables](#environment-variables) section below).
 
-3. Set up the database — Choose one of the two paths below:
-
-   <details>
-   <summary><strong>Path 1: Local Supabase (Docker)</strong></summary>
-
-   Requires Docker Desktop installed and running.
+3. Start the local Supabase instance (requires Docker Desktop running):
 
    ```bash
    npx supabase start
@@ -53,22 +47,6 @@ Modern peer-to-peer payment system. This sample application uses Next.js, Supaba
    ```
 
    The output of `npx supabase start` will display the Supabase URL and API keys needed for your `.env.local`.
-
-   </details>
-
-   <details>
-   <summary><strong>Path 2: Remote Supabase (Cloud)</strong></summary>
-
-   Requires a [Supabase](https://supabase.com/) account and project.
-
-   ```bash
-   npx supabase link --project-ref <your-project-ref>
-   npx supabase db push
-   ```
-
-   Retrieve your project URL and API keys from the Supabase dashboard under **Settings → API**.
-
-   </details>
 
 4. Start the development server:
 
