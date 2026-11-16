@@ -391,6 +391,9 @@ const KEY_ID_PATTERN =
 // Caching the in-flight promise makes concurrent cold requests share one fetch.
 const publicKeyCache = new Map<string, Promise<crypto.KeyObject>>();
 
+// Every delivery for a key id awaits the same lookup, so a stalled one must fail fast and drop out.
+const PUBLIC_KEY_FETCH_TIMEOUT_MS = 10_000;
+
 function getCirclePublicKey(keyId: string): Promise<crypto.KeyObject> {
   const cacheKey = keyId.toLowerCase();
   const cached = publicKeyCache.get(cacheKey);
@@ -418,6 +421,7 @@ async function fetchCirclePublicKey(keyId: string): Promise<crypto.KeyObject> {
         Accept: "application/json",
         Authorization: `Bearer ${process.env.CIRCLE_API_KEY}`,
       },
+      signal: AbortSignal.timeout(PUBLIC_KEY_FETCH_TIMEOUT_MS),
     }
   );
 

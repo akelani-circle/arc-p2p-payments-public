@@ -142,6 +142,26 @@ describe("POST /api/webhooks/circle — authenticity", () => {
     }
   );
 
+  it("bounds the key fetch with a timeout, so a stalled lookup can't hold every delivery", async () => {
+    const keyId = crypto.randomUUID();
+    queueTables(admin, {});
+    await POST(signed(inbound({ state: "PENDING" }), undefined, keyId));
+    const [, init] = vi.mocked(fetch).mock.calls[0];
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("answers a timed-out key fetch with a retryable 503 and does not cache it", async () => {
+    const keyId = crypto.randomUUID();
+    vi.mocked(fetch).mockRejectedValueOnce(
+      new DOMException("The operation was aborted due to timeout", "TimeoutError")
+    );
+    const body = inbound({ state: "PENDING" });
+    expect((await POST(signed(body, body, keyId))).status).toBe(503);
+    queueTables(admin, {});
+    expect((await POST(signed(body, body, keyId))).status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it("shares one key fetch across concurrent requests and key id casing", async () => {
     const keyId = crypto.randomUUID();
     queueTables(admin, {});
